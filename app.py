@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
-from model import ResNet
+from network import ResNet
+import torchvision.datasets as datasets
 
 args = ArgumentParser()
 args.add_argument("--mode",type=str,choices=["train","test"],default="train")
@@ -15,12 +16,10 @@ configs = {"epochs":parsed.epochs,
 mode = parsed.mode
 
 md = ResNet(configs=configs)
-md.build()
+
 if mode == "train":
-    md.train()
-    md.test()
-    md.export()
+    data=datasets.MNIST(root="./data",train=True,download=True,transform=None)
 elif mode == "test":
-    md.test()
+    data=datasets.MNIST(root="./data",train=False,download=True,transform=None)
 
 print("Success")
