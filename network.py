@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import torchvision.models as models
 from torchsummary import summary
 
-class ResBlock(nn.Module):
+class BasicBlock(nn.Module):
     def __init__(self,in_channels,out_channels,kernel_size=3,padding=0,stride=1,activation=nn.ReLU):
-        super(ResBlock,self).__init__()
+        super(BasicBlock,self).__init__()
         if stride > 1:
             self.res_block=nn.Sequential(
                 nn.Conv2d(in_channels,out_channels,kernel_size,stride=2,padding=padding,bias=False),
@@ -32,17 +32,19 @@ class ResBlock(nn.Module):
     def forward(self,x):
         residual=x
         x=self.res_block(x)
-        if x.size()[1]!=residual.size()[1]:
-            if x.size()[2]!=residual.size()[2]:
-                residual=self.skip_conv3x3(residual)
-            else:
-                residual=self.skip_conv1x1(residual)
-        x=x+residual
-        print(x.size())
+        if x.size() == residual.size():
+            x=x+residual
+        #if x.size()[1]!=residual.size()[1]:
+        #    if x.size()[2]!=residual.size()[2]:
+        #        residual=self.skip_conv3x3(residual)
+        #    else:
+        #        residual=self.skip_conv1x1(residual)
+        #x=x+residual
+        #print(x.size())
         return x
 
 class ResNet(nn.Module):
-    def __init__(self, num_blocks=1,activation=nn.ReLU):
+    def __init__(self, num_blocks=4,activation=nn.ReLU):
         super(ResNet,self).__init__()
         blocks=[]
         in_channels,out_channels=3,64
@@ -53,12 +55,12 @@ class ResNet(nn.Module):
 
         in_channels,out_channels=out_channels,out_channels
         blocks.append(nn.MaxPool2d(kernel_size=3,stride=2,padding=1))
-        for bl in range(2):
+        for bl in range(num_blocks):
             for i in range(2):
                 stride, padding=1,1
-                if i==0 and bl>=1:
+                if i==0 and bl>0:
                     stride=2
-                blocks.append(ResBlock(in_channels=in_channels,out_channels=out_channels,kernel_size=3,padding=padding,stride=stride))
+                blocks.append(BasicBlock(in_channels=in_channels,out_channels=out_channels,kernel_size=3,padding=padding,stride=stride))
                 in_channels=out_channels
             out_channels*=2
 
@@ -68,8 +70,5 @@ class ResNet(nn.Module):
         return self.net(x)
 
 if __name__=="__main__":
-    net=ResNet(num_blocks=2)
-    print(summary(net,(3,224,224)))
-
-    model=models.resnet18()
-    print(summary(model,(3,224,224)))
+    net=ResNet(num_blocks=4)
+    summary(net,(3,224,224))
