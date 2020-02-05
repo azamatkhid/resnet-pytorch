@@ -5,70 +5,69 @@ import torchvision.models as models
 from torchsummary import summary
 
 class BasicBlock(nn.Module):
-    def __init__(self,in_channels,out_channels,kernel_size=3,padding=0,stride=1,activation=nn.ReLU):
-        super(BasicBlock,self).__init__()
-        if stride > 1:
-            self.res_block=nn.Sequential(
-                nn.Conv2d(in_channels,out_channels,kernel_size,stride=2,padding=padding,bias=False),
-                nn.BatchNorm2d(out_channels),
-                activation(inplace=True),
-                nn.Conv2d(out_channels,out_channels,kernel_size,stride=1,padding=1,bias=False),
-                nn.BatchNorm2d(out_channels),
-                nn.Conv2d(out_channels,out_channels,kernel_size,stride=1,padding=1,bias=False),
-                nn.BatchNorm2d(out_channels),
-                activation(inplace=True))
-        else:
-            self.res_block=nn.Sequential(
-                nn.Conv2d(in_channels,out_channels,kernel_size,stride=1,padding=padding,bias=False),
-                nn.BatchNorm2d(out_channels),
-                activation(inplace=True),
-                nn.Conv2d(out_channels,out_channels,kernel_size,stride=1,padding=1,bias=False),
-                nn.BatchNorm2d(out_channels),
-                activation(inplace=True))
- 
-        self.skip_conv1x1=nn.Conv2d(in_channels,out_channels,1,bias=False)
-        self.skip_conv3x3=nn.Conv2d(in_channels,out_channels,kernel_size,stride=2,padding=1,bias=False)
-
+    def __init__(self,inchannel,outchannel,stride=1,kernel_size=3,act=nn.ReLU):
+        super(BasicBlock, self).__init__()
+        self.conv1=nn.Conv2d(inchannel,outchannel,kernel_size=kernel_size,stride=stride,padding=1,bias=False)
+        self.bn1=nn.BatchNorm2d(outchannel)
+        self.act1=act(inplace=True)
+        self.conv2=nn.Conv2d(outchannel,outchannel,kernel_size=kernel_size,stride=1,padding=1,bias=False)
+        self.bn2=nn.BatchNorm2d(outchannel)
+        self.act2=act(inplace=True)
+        self.skip=nn.Sequential()
+        if stride>1 or inchannel!=outchannel:
+            self.skip=nn.Sequential(nn.Conv2d(inchannel,outchannel,kernel_size=1,stride=stride,padding=0,bias=False),
+                    nn.BatchNorm2d(outchannel))
+    
     def forward(self,x):
-        residual=x
-        x=self.res_block(x)
-        if x.size() == residual.size():
-            x=x+residual
-        #if x.size()[1]!=residual.size()[1]:
-        #    if x.size()[2]!=residual.size()[2]:
-        #        residual=self.skip_conv3x3(residual)
-        #    else:
-        #        residual=self.skip_conv1x1(residual)
-        #x=x+residual
-        #print(x.size())
-        return x
+        out=self.act1(self.bn1(self.conv1(x)))
+        out=self.act2(self.bn2(self.conv2(out)))
+        out=out+self.skip(x)
+        return out
 
 class ResNet(nn.Module):
-    def __init__(self, num_blocks=4,activation=nn.ReLU):
+    def __init__(self,layers=[2,2,2,2],act=nn.ReLU):
         super(ResNet,self).__init__()
-        blocks=[]
-        in_channels,out_channels=3,64
-        kernel_size,stride,padding=7,2,3
-        blocks.append(nn.Conv2d(in_channels,out_channels,kernel_size,stride=stride,padding=padding,bias=False))
-        blocks.append(nn.BatchNorm2d(out_channels))
-        blocks.append(activation(inplace=True))
+        inchannel,outchannel=3,64
+        self._layers=[]
 
-        in_channels,out_channels=out_channels,out_channels
-        blocks.append(nn.MaxPool2d(kernel_size=3,stride=2,padding=1))
-        for bl in range(num_blocks):
-            for i in range(2):
-                stride, padding=1,1
-                if i==0 and bl>0:
-                    stride=2
-                blocks.append(BasicBlock(in_channels=in_channels,out_channels=out_channels,kernel_size=3,padding=padding,stride=stride))
-                in_channels=out_channels
-            out_channels*=2
-
-        self.net=nn.Sequential(*blocks)
+        self.conv0=nn.Conv2d(inchannel,outchannel,kernel_size=7,stride=2,padding=3,bias=False)
+        self.b0=nn.BatchNorm2d(outchannel)
+        self.act0=act(inplace=True)
+        self.maxpool=nn.MaxPool2d(kernel_size=3,stride=2,padding=1)
+        self.layer1=self._make_res_layer(outchannel,outchannel,layers[0],stride=1,act=act)
+        self.layer2=self._make_res_layer(outchannel,2*outchannel,layers[1],stride=2,act=act)
+        self.layer3=self._make_res_layer(2*outchannel,4*outchannel,layers[2],stride=2,act=act)
+        self.layer4=self._make_res_layer(4*outchannel,8*outchannel,layers[3],stride=2,act=act)
+        print("Layer1")
+        print(self.layer1)
+        print("Layer2")
+        print(self.layer2)
+        print("Layer3")
+        print(self.layer3)
+        print("Layer4")
+        print(self.layer4)
 
     def forward(self,x):
-        return self.net(x)
+        out=self.maxpool(self.act0(self.b0(self.conv0(x))))
+        print(out.size())
+        out=self.layer1(out)
+        print(out.size())
+        out=self.layer2(out)
+        print(out.size())
+        out=self.layer3(out)
+        print(out.size())
+        out=self.layer4(out)
+        print(out.size())
+        return out
+
+    def _make_res_layer(self,inchannel,outchannel,num_blocks,stride=1,act=nn.ReLU):
+        blocks=[]
+        blocks.append(BasicBlock(inchannel,outchannel,stride=stride,act=act))
+        for bl in range(1,num_blocks):
+            blocks.append(BasicBlock(outchannel,outchannel,stride=1,act=act))
+        return nn.Sequential(*blocks)
+
 
 if __name__=="__main__":
-    net=ResNet(num_blocks=4)
+    net=ResNet(layers=[2,2,2,2])
     summary(net,(3,224,224))
