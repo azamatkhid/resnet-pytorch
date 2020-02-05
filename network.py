@@ -25,7 +25,7 @@ class BasicBlock(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self,layers=[2,2,2,2],act=nn.ReLU):
+    def __init__(self,layers=[2,2,2,2],act=nn.ReLU, num_classes=1000):
         super(ResNet,self).__init__()
         inchannel,outchannel=3,64
         self._layers=[]
@@ -38,26 +38,19 @@ class ResNet(nn.Module):
         self.layer2=self._make_res_layer(outchannel,2*outchannel,layers[1],stride=2,act=act)
         self.layer3=self._make_res_layer(2*outchannel,4*outchannel,layers[2],stride=2,act=act)
         self.layer4=self._make_res_layer(4*outchannel,8*outchannel,layers[3],stride=2,act=act)
-        print("Layer1")
-        print(self.layer1)
-        print("Layer2")
-        print(self.layer2)
-        print("Layer3")
-        print(self.layer3)
-        print("Layer4")
-        print(self.layer4)
+        self.pooling=nn.AdaptiveAvgPool2d((1,1))
+        self.layer5=nn.Linear(512, num_classes)
+
 
     def forward(self,x):
         out=self.maxpool(self.act0(self.b0(self.conv0(x))))
-        print(out.size())
         out=self.layer1(out)
-        print(out.size())
         out=self.layer2(out)
-        print(out.size())
         out=self.layer3(out)
-        print(out.size())
         out=self.layer4(out)
-        print(out.size())
+        out=self.pooling(out)
+        out=torch.flatten(out,1)
+        out=self.layer5(out)
         return out
 
     def _make_res_layer(self,inchannel,outchannel,num_blocks,stride=1,act=nn.ReLU):
