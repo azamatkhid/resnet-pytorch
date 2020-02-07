@@ -23,12 +23,17 @@ transform=transforms.Compose([transforms.Resize((224,224),interpolation=2),
     transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
 
 
+device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 net=ResNet(layers=[2,2,2,2])
+net.to(device)
 if parsed.verbose!=0:
     summary(net,(3,224,224))
 
 
 if mode == "train":
+
+
     data=datasets.CIFAR10(root="./data",train=True,download=True,transform=transform)
     dataloader=torch.utils.data.DataLoader(data, batch_size=10,shuffle=True,num_workers=1)
     criterion=nn.CrossEntropyLoss()
@@ -37,7 +42,7 @@ if mode == "train":
     for epoch in range(10):
         running_loss=0.0
         for idx, batch in enumerate(dataloader, 0):
-            inputs,labels=batch
+            inputs,labels=batch[0].to(device),batch[1].to(device)
             optimizer.zero_grad()
             outputs=net(inputs)
             loss=criterion(outputs,labels)
