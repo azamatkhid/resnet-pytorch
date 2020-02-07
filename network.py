@@ -27,21 +27,15 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     def __init__(self,inchannel,outchannel,stride=1,kernel_size=3,act=nn.ReLU):
         super(Bottleneck,self).__init__()
-
-
-
-
-
-
-
-
-
+        self.conv1=Conv2d(inchannel,inchannel//self.expansion,stride=1,kernel_size=1,bias=False)
+        self.conv2=Conv2d(inchannel//self.expansion,inchannel//self.expansion,stride=1,kernel_size=3,bias=False)
+        self.conv3=Conv2d(inchannel,inchannel//self.expansion,stride=1,kernel_size=1,bias=False)
 
 
 
 
 class ResNet(nn.Module):
-    def __init__(self,layers=[2,2,2,2],act=nn.ReLU, num_classes=1000,res_block=BasicBlock):
+    def __init__(self,layers=[2,2,2,2],act=nn.ReLU,num_classes=10,res_block=BasicBlock):
         super(ResNet,self).__init__()
         inchannel,outchannel=3,64
         self._layers=[]
