@@ -26,11 +26,12 @@ transform=transforms.Compose([transforms.Resize((224,224),interpolation=2),
 device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 net=ResNet(layers=[2,2,2,2])
-
+print(f"Run on {device}")
 if torch.cuda.device_count() > 0:
     net=nn.DataParallel(net)
-
+    print(f"Number of GPUs: {torch.cuda.device.count()}")
 net.to(device)
+
 if parsed.verbose!=0:
     summary(net,(3,224,224))
 
