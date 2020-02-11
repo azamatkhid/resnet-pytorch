@@ -42,12 +42,14 @@ class Model:
 
         self.net=ResNet(self.layers)
         
-        if self.verbose==1:
-            summary(self.net,(3,224,224))
         if torch.cuda.device_count()>0:
             self.net=nn.DataParallel(self.net)
             print(f"Number of GPUs {torch.cuda.device_count()}")
         self.net.to(self.device)
+
+        if self.verbose==1 and torch.cuda.device_count()==1:
+            summary(self.net,(3,224,224))
+
 
     def train(self, criterion=nn.CrossEntropyLoss,optimizer=torch.optim.SGD):
         self.net.train() # required due to BN layer
