@@ -71,8 +71,8 @@ class Model:
                 running_loss+=loss.item()
                 
                 if idx%self.verbose_step==self.verbose_step-1:
-                    self.writer.add_scalar("Loss/Train",running_loss/self.verbose_step,iteration)
                     valid_acc, valid_loss=self._validation()
+                    self.writer.add_scalar("Loss/Train",running_loss/self.verbose_step,iteration)
                     self.writer.add_scalar("Loss/Validation",valid_loss,iteration)
                     self.writer.add_scalar("Acc/Validation",valid_acc,iteration)
                     running_loss=0.0
