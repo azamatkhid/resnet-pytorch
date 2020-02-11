@@ -14,6 +14,8 @@ from network import ResNet
 from constants import default
 from tqdm import tqdm
 
+
+
 class Model:
     def __init__(self,**kwargs):
         default.update(kwargs)
@@ -27,7 +29,7 @@ class Model:
         self.momentum=default["momentum"]
         self.verbose_step=default["verbose_step"]
         self.verbose=default["verbose"]
-        self.mode=default["mode"]
+        self.block=default["block"]
 
         self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(f"Device: {self.device}")
@@ -40,14 +42,14 @@ class Model:
             transforms.ToTensor(),
             transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
 
-        self.net=ResNet(self.layers)
+        self.net=ResNet(self.layers,res_block=self.block)
         
         if torch.cuda.device_count()>0:
             self.net=nn.DataParallel(self.net)
             print(f"Number of GPUs {torch.cuda.device_count()}")
         self.net.to(self.device)
 
-        if self.verbose==1 and torch.cuda.device_count()==1:
+        if self.verbose==1 and torch.cuda.device_count()<=1:
             summary(self.net,(3,224,224))
 
 
