@@ -144,7 +144,7 @@ class Model:
                     num_workers=1)
 
         elif args[0]=="test":
-            data=datasets.CIFAR10(root="./data",train=True,download=True,transform=self.train_transforms)
+            data=datasets.CIFAR10(root="./data",train=False,download=True,transform=self.train_transforms)
             self.test_data=torch.utils.data.DataLoader(data, batch_size=self.batch_size,shuffle=False,num_workers=1)
 
 
