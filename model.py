@@ -61,6 +61,7 @@ class Model:
         iteration=1
         for epch in range(self.epochs):
             running_loss=0.0
+            epch_loss=0.0
             for idx, batch in enumerate(self.train_data,start=0):
                 inputs,labels=batch[0].to(self.device),batch[1].to(self.device)
                 self.optimizer.zero_grad()
@@ -69,14 +70,17 @@ class Model:
                 loss.backward()
                 self.optimizer.step()
                 running_loss+=loss.item()
-                
+                epch_loss+=loss.item()
+
                 if idx%self.verbose_step==self.verbose_step-1:
                     valid_acc, valid_loss=self._validation()
                     self.writer.add_scalar("Loss/Train",running_loss/self.verbose_step,iteration)
                     self.writer.add_scalar("Loss/Validation",valid_loss,iteration)
                     self.writer.add_scalar("Acc/Validation",valid_acc,iteration)
+                    print(f"{epch} train_loss: {running_loss/self.verbose_step}, val_loss: {valid_loss}, val_acc: {valid_acc}")
                     running_loss=0.0
                     iteration+=1
+            print(f"[{epch}] loss: {epch_loss}")
 
         torch.save(self.net.state_dict(),self.ckpts_dir)
 

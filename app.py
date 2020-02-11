@@ -21,6 +21,6 @@ configs["layers"]=[2,2,2,2]
 
 model=Model(**configs)
 model.train()
-#model.test()
+model.test()
 
 print("Success")
