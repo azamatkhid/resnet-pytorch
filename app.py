@@ -20,7 +20,7 @@ configs=vars(parsed)
 configs["layers"]=[2,2,2,2]
 
 model=Model(**configs)
-model.net_summary()
 model.train()
+#model.test()
 
 print("Success")
