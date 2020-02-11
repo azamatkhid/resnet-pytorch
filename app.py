@@ -1,6 +1,8 @@
-from argparse import ArgumentParser
-from model import Model
 import os
+from argparse import ArgumentParser
+
+from model import Model
+from network import BasicBlock, Bottleneck
 
 args = ArgumentParser()
 args.add_argument("--mode",type=str,choices=["train","test"],default="train")
@@ -17,10 +19,11 @@ parsed = args.parse_args()
 mode = parsed.mode
 
 configs=vars(parsed)
-configs["layers"]=[2,2,2,2]
+configs["layers"]=[3,4,6,3]
+configs["block"]=BasicBlock
 
 model=Model(**configs)
-model.train()
-model.test()
+#model.train()
+#model.test()
 
 print("Success")
