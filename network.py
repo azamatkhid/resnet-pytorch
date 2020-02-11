@@ -5,6 +5,7 @@ import torchvision.models as models
 from torchsummary import summary
 
 class BasicBlock(nn.Module):
+    expansion=1
     def __init__(self,inchannel,outchannel,stride=1,kernel_size=3,act=nn.ReLU):
         super(BasicBlock, self).__init__()
         self.conv1=nn.Conv2d(inchannel,outchannel,kernel_size=kernel_size,stride=stride,padding=1,bias=False)
@@ -25,14 +26,22 @@ class BasicBlock(nn.Module):
         return out
 
 class Bottleneck(nn.Module):
+    expansion=4
     def __init__(self,inchannel,outchannel,stride=1,kernel_size=3,act=nn.ReLU):
         super(Bottleneck,self).__init__()
-        self.conv1=Conv2d(inchannel,inchannel//self.expansion,stride=1,kernel_size=1,bias=False)
-        self.conv2=Conv2d(inchannel//self.expansion,inchannel//self.expansion,stride=1,kernel_size=3,bias=False)
-        self.conv3=Conv2d(inchannel,inchannel//self.expansion,stride=1,kernel_size=1,bias=False)
-
-
-
+        self.conv1=Conv2d(inchannel,outchannel,stride=stride,kernel_size=1,bias=False)
+        self.bn1=nn.BatchNorm2d(outchannel)
+        self.act1=nn.act(inplace=True)
+        self.conv2=Conv2d(outchannel,outchannel,stride=1,kernel_size=3,padding=1,bias=False)
+        self.bn2=nn.BatchNorm2d(outchannel)
+        self.act2=nn.act(inplace=True)
+        self.conv3=Conv2d(outchannel,outchannel*self.expansion,stride=1,kernel_size=1,bias=False)
+        self.bn3=nn.BatchNorm2d(outchannel*self.expansion)
+        self.act3=nn.act(inplace=True)
+        self.skip=nn.Sequential()
+        if stride>1 or inchannel!=outchannel*self.expansion:
+            self.skip=nn.Sequential(nn.Conv2d(inchannel,outchannel*self.expansion,stride=stride,kernel_size=1,bias=False),
+                    nn.BatchNorm2d(outchannel*self.expansion))
 
 class ResNet(nn.Module):
     def __init__(self,layers=[2,2,2,2],act=nn.ReLU,num_classes=10,res_block=BasicBlock):
@@ -49,7 +58,7 @@ class ResNet(nn.Module):
         self.layer3=self._make_res_layer(res_block,2*outchannel,4*outchannel,layers[2],stride=2,act=act)
         self.layer4=self._make_res_layer(res_block,4*outchannel,8*outchannel,layers[3],stride=2,act=act)
         self.pooling=nn.AdaptiveAvgPool2d((1,1))
-        self.layer5=nn.Linear(512, num_classes)
+        self.layer5=nn.Linear(512*res_block.expansion, num_classes)
 
 
     def forward(self,x):
