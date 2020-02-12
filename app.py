@@ -10,6 +10,7 @@ args.add_argument("--epochs",type=int,default=10)
 args.add_argument("--ckpts_dir",type=str,default="./ckpts")
 args.add_argument("--log_dir",type=str,default="./tboard")
 args.add_argument("--verbose_step",type=int,default=100)
+args.add_argument("--verbose",type=int,default=1)
 args.add_argument("--batch_size",type=int,default=10)
 args.add_argument("--lr",type=float,default=0.01)
 args.add_argument("--momentum",type=float,default=0.9)
@@ -19,8 +20,8 @@ parsed = args.parse_args()
 mode = parsed.mode
 
 configs=vars(parsed)
-configs["layers"]=[3,4,6,3]
-configs["block"]=BasicBlock
+configs["layers"]=[3,4,23,3]
+configs["block"]=Bottleneck
 
 model=Model(**configs)
 #model.train()
