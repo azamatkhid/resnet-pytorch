@@ -7,4 +7,5 @@ default={"layers":[2,2,2,2],
         "lr":0.001,
         "log_dir":"./tboard",
         "ckpts_dir":"./ckpts",
-        "mode":"train"}
+        "mode":"train",
+        "block":None}
