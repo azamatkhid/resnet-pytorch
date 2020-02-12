@@ -21,18 +21,17 @@ class BasicBlock(nn.Module):
     
     def forward(self,x):
         out=self.act1(self.bn1(self.conv1(x)))
-        out=self.act2(self.bn2(self.conv2(out)))
-        out=out+self.skip(x)
+        out=self.act2(self.bn2(self.conv2(out))+self.skip(x))
         return out
 
 class Bottleneck(nn.Module):
     expansion=4
     def __init__(self,inchannel,outchannel,stride=1,act=nn.ReLU):
         super(Bottleneck,self).__init__()
-        self.conv1=nn.Conv2d(inchannel,outchannel,stride=stride,kernel_size=1,bias=False)
+        self.conv1=nn.Conv2d(inchannel,outchannel,stride=1,kernel_size=1,bias=False)
         self.bn1=nn.BatchNorm2d(outchannel)
         self.act1=act(inplace=True)
-        self.conv2=nn.Conv2d(outchannel,outchannel,stride=1,kernel_size=3,padding=1,bias=False)
+        self.conv2=nn.Conv2d(outchannel,outchannel,stride=stride,kernel_size=3,padding=1,bias=False)
         self.bn2=nn.BatchNorm2d(outchannel)
         self.act2=act(inplace=True)
         self.conv3=nn.Conv2d(outchannel,outchannel*self.expansion,stride=1,kernel_size=1,bias=False)
@@ -42,11 +41,11 @@ class Bottleneck(nn.Module):
         if stride>1 or inchannel!=outchannel*self.expansion:
             self.skip=nn.Sequential(nn.Conv2d(inchannel,outchannel*self.expansion,stride=stride,kernel_size=1,bias=False),
                     nn.BatchNorm2d(outchannel*self.expansion))
+
     def forward(self,x):
         out=self.act1(self.bn1(self.conv1(x)))
         out=self.act2(self.bn2(self.conv2(out)))
-        out=self.act3(self.bn3(self.conv3(out)))
-        out=out+self.skip(x)
+        out=self.act3(self.bn3(self.conv3(out))+self.skip(x))
         return out
 
 
