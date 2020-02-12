@@ -42,7 +42,11 @@ class Model:
             transforms.ToTensor(),
             transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
 
-        self.net=ResNet(self.layers,res_block=self.block)
+        if not self.block:
+            self.net=ResNet(self.layers)
+        else:
+            self.net=ResNet(self.layers,res_block=self.block)
+
         
         if torch.cuda.device_count()>0:
             self.net=nn.DataParallel(self.net)
@@ -157,4 +161,8 @@ class Model:
 
 
 
+if __name__=="__main__":
+    model=Model(**default)
+    summary(model.net,(3,224,224))
+    
 
