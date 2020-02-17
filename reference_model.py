@@ -17,13 +17,15 @@ from model import Model
 class ResNet_official(Model):
     def __init__(self,**configs):
         super(Model,self).__init__()
+        self.layers=configs["layers"]
+        self.epochs=configs["epochs"]
         self.batch_size=configs["batch_size"]
+        self.log_dir=configs["log_dir"]
+        self.ckpts_dir=configs["ckpts_dir"]
         self.lr=configs["lr"]
         self.momentum=configs["momentum"]
-        self.epochs=configs["epochs"]
-        self.ckpts_dir=configs["ckpts_dir"]
-        self.log_dir=configs["log_dir"]
-        self.net_type=configs["model"]
+        self.verbose_step=configs["verbose_step"]
+        self.verbose=configs["verbose"]
         self.num_classes=configs["num_classes"]
 
         self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -56,7 +58,7 @@ class ResNet_official(Model):
             print(f"Number of GPUs {torch.cuda.device_count()}")
         self.net.to(self.device)
         
-        if torch.cuda.device_count()>=0:
+        if torch.cuda.device_count()>=0 and self.verbose==1:
             summary(self.net,(3,224,224))
 
 @hydra.main("./default.yaml")
