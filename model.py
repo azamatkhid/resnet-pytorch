@@ -27,6 +27,8 @@ class Model:
         self.momentum=configs["momentum"]
         self.verbose_step=configs["verbose_step"]
         self.verbose=configs["verbose"]
+        self.num_classes=num_classes
+
         if configs["block"].lower()=="basic":
             self.block=BasicBlock
         elif configs["block"].lower()=="bottleneck":
@@ -43,11 +45,7 @@ class Model:
             transforms.ToTensor(),
             transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
 
-        if not self.block:
-            self.net=ResNet(self.layers)
-        else:
-            self.net=ResNet(self.layers,res_block=self.block)
-
+        self.net=ResNet(self.layers,res_block=self.block, num_classes=self.num_classes)
         
         if torch.cuda.device_count()>0:
             self.net=nn.DataParallel(self.net)

@@ -7,6 +7,8 @@ parameters:
   momentum: 0.9
   lr: 0.001
   mode: "train"
-  log_dir: "./output/tboard"
-  ckpts_dir: "./output/ckpts"
+  log_dir: "./tboard"
+  ckpts_dir: "./ckpts"
   block: "basic"
+  num_classes: 10
+  model: "resnet18"

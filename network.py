@@ -65,7 +65,7 @@ class ResNet(nn.Module):
         self.layer3=self._make_res_layer(res_block,256,layers[2],stride=2,act=act)
         self.layer4=self._make_res_layer(res_block,512,layers[3],stride=2,act=act)
         self.pooling=nn.AdaptiveAvgPool2d((1,1))
-        self.layer5=nn.Linear(512*res_block.expansion, num_classes)
+        self.layer5=nn.Linear(512*res_block.expansion,num_classes)
 
 
     def forward(self,x):
