@@ -16,6 +16,7 @@ from model import Model
 
 class ResNet_official(Model):
     def __init__(self,**configs):
+        super(Model,self).__init__()
         self.batch_size=configs["batch_size"]
         self.lr=configs["lr"]
         self.momentum=configs["momentum"]
