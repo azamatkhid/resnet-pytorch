@@ -1,3 +1,7 @@
+hydra:
+  run:
+    dir: ./output/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
 parameters:
   layers: [2,2,2,2]
   epochs: 100

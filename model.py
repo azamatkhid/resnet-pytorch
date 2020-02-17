@@ -11,9 +11,8 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torchsummary import summary
 
 from network import ResNet,BasicBlock,Bottleneck
-#from constants import default
 from tqdm import tqdm
-
+from hydra import utils
 
 
 class Model:
@@ -27,7 +26,7 @@ class Model:
         self.momentum=configs["momentum"]
         self.verbose_step=configs["verbose_step"]
         self.verbose=configs["verbose"]
-        self.num_classes=num_classes
+        self.num_classes=configs["num_classes"]
 
         if configs["block"].lower()=="basic":
             self.block=BasicBlock
@@ -124,7 +123,8 @@ class Model:
                 total+=labels.size(0)
                 correct+=(predicted==labels).sum().item()
         print(f"Test accuracy: {100*correct/total}%")
-        self.net.train() # required due to BN layer
+        self.net.train()
+
 
     def _check_dirs(self):
         if not os.path.exists(self.log_dir):
@@ -134,7 +134,8 @@ class Model:
 
     def _load_data(self,*args):
         if args[0]=="train":
-            data=datasets.CIFAR10(root="./data",train=True,download=True,transform=self.train_transforms)
+            data=datasets.CIFAR10(root=os.path.join(utils.get_original_cwd(),"./data"),
+                    train=True,download=True,transform=self.train_transforms)
 
             data_size=len(data)
             indices=list(range(data_size))
@@ -155,6 +156,8 @@ class Model:
                     num_workers=1)
 
         elif args[0]=="test":
+            data=datasets.CIFAR10(root=os.path.join(utils.get_original_cwd(),"./data"),
+                    train=False,download=True,transform=self.test_transforms)
             data=datasets.CIFAR10(root="./data",train=False,download=True,transform=self.train_transforms)
             self.test_data=torch.utils.data.DataLoader(data, batch_size=self.batch_size,shuffle=False,num_workers=1)
 
