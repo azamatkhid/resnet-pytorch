@@ -27,7 +27,7 @@ class ResNet_official(Model):
         self.verbose_step=configs["verbose_step"]
         self.verbose=configs["verbose"]
         self.num_classes=configs["num_classes"]
-
+        self.net_type=configs["model"]
         self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(f"{self.device}")
 
