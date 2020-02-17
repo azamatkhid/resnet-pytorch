@@ -1,0 +1,12 @@
+parameters:
+  layers: [2,2,2,2]
+  epochs: 100
+  batch_size: 40
+  verbose_step: 100
+  verbose: 1
+  momentum: 0.9
+  lr: 0.001
+  mode: "train"
+  log_dir: "./output/tboard"
+  ckpts_dir: "./output/ckpts"
+  block: "basic"

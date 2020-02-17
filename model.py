@@ -10,26 +10,27 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data.sampler import SubsetRandomSampler
 from torchsummary import summary
 
-from network import ResNet
-from constants import default
+from network import ResNet,BasicBlock,Bottleneck
+#from constants import default
 from tqdm import tqdm
 
 
 
 class Model:
-    def __init__(self,**kwargs):
-        default.update(kwargs)
-
-        self.layers=default["layers"]
-        self.epochs=default["epochs"]
-        self.batch_size=default["batch_size"]
-        self.log_dir=default["log_dir"]
-        self.ckpts_dir=default["ckpts_dir"]
-        self.lr=default["lr"]
-        self.momentum=default["momentum"]
-        self.verbose_step=default["verbose_step"]
-        self.verbose=default["verbose"]
-        self.block=default["block"]
+    def __init__(self,**configs):
+        self.layers=configs["layers"]
+        self.epochs=configs["epochs"]
+        self.batch_size=configs["batch_size"]
+        self.log_dir=configs["log_dir"]
+        self.ckpts_dir=configs["ckpts_dir"]
+        self.lr=configs["lr"]
+        self.momentum=configs["momentum"]
+        self.verbose_step=configs["verbose_step"]
+        self.verbose=configs["verbose"]
+        if configs["block"].lower()=="basic":
+            self.block=BasicBlock
+        elif configs["block"].lower()=="bottleneck":
+            self.block=Bottleneck
 
         self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(f"Device: {self.device}")
