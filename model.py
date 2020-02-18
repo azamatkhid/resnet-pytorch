@@ -21,7 +21,7 @@ class Model:
         self.epochs=configs["epochs"]
         self.batch_size=configs["batch_size"]
         self.log_dir=configs["log_dir"]
-        self.ckpts_dir=configs["ckpts_dir"]
+        self.ckpts_dir=os.path.join(configs["ckpts_dir"],"model.pth")
         self.lr=configs["lr"]
         self.momentum=configs["momentum"]
         self.verbose_step=configs["verbose_step"]
