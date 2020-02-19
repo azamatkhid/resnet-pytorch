@@ -71,7 +71,6 @@ class Model:
         iteration=1
         for epch in range(self.epochs):
             self.scheduler.step()
-            print(f"{self.scheduler.get_lr()}")
             running_loss=0.0
             epch_loss=0.0
             for idx, batch in enumerate(self.train_data,start=0):
