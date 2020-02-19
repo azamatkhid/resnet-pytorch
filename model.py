@@ -21,7 +21,7 @@ class Model:
         self.epochs=configs["epochs"]
         self.batch_size=configs["batch_size"]
         self.log_dir=configs["log_dir"]
-        self.ckpts_dir=os.path.join(configs["ckpts_dir"],"model.pth")
+        self.ckpts_dir=configs["ckpts_dir"]
         self.lr=configs["lr"]
         self.momentum=configs["momentum"]
         self.verbose_step=configs["verbose_step"]
@@ -88,7 +88,7 @@ class Model:
                     iteration+=1
             print(f"[{epch}] loss: {epch_loss}")
 
-        torch.save(self.net.state_dict(),self.ckpts_dir)
+        torch.save(self.net.state_dict(),os.path.join(self.ckpts_dir,"model.pth"))
 
     def _validation(self):
         self.net.eval() # required due to BN layer
