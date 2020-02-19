@@ -27,6 +27,7 @@ class Model:
         self.verbose_step=configs["verbose_step"]
         self.verbose=configs["verbose"]
         self.num_classes=configs["num_classes"]
+        
 
         if configs["block"].lower()=="basic":
             self.block=BasicBlock
@@ -63,9 +64,11 @@ class Model:
         self.writer=SummaryWriter(log_dir=self.log_dir)
         self.criterion=criterion()
         self.optimizer=optimizer(self.net.parameters(),lr=self.lr,momentum=self.momentum)
+        self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=1,gamma=0.1)
 
         iteration=1
         for epch in range(self.epochs):
+            self.scheduler.step()
             running_loss=0.0
             epch_loss=0.0
             for idx, batch in enumerate(self.train_data,start=0):
@@ -83,9 +86,13 @@ class Model:
                     self.writer.add_scalar("Loss/Train",running_loss/self.verbose_step,iteration)
                     self.writer.add_scalar("Loss/Validation",valid_loss,iteration)
                     self.writer.add_scalar("Acc/Validation",valid_acc,iteration)
-                    print(f"{epch} train_loss: {running_loss/self.verbose_step}, val_loss: {valid_loss}, val_acc: {valid_acc}")
+                    self.writer.add_scalar("LearningRate",self.scheduler.get_lr(),iteration)
+                    print(f"{epch} train_loss: {running_loss/self.verbose_step}, val_loss: {valid_loss}, val_acc: {valid_acc}, lr: {self.scheduler.get_lr()}")
                     running_loss=0.0
                     iteration+=1
+
+            self.scheduler.step() # learning rate decay
+            
             print(f"[{epch}] loss: {epch_loss}")
 
         torch.save(self.net.state_dict(),os.path.join(self.ckpts_dir,"model.pth"))
@@ -96,7 +103,7 @@ class Model:
         total=0
         total_loss=0
         with torch.no_grad():
-            for data in tqdm(self.valid_data):
+            for data in self.valid_data:
                 inputs,labels=data[0].to(self.device),data[1].to(self.device)
                 outputs=self.net(inputs)
                 loss=self.criterion(outputs,labels)
