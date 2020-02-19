@@ -32,19 +32,21 @@ class ResNet_official(Model):
         print(f"{self.device}")
         
         torch.manual_seed(0)
-
+        
         self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
+            transforms.Pad(4),
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0),
+            transforms.RandomCrop((224,224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5,0.5,0.5],
                 std=[0.5,0.5,0.5])])
         
-        self.test_transforms=transforms.Compose([transforms.Resize((224,224), interpolation=2),
+        self.test_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5,0,5,0,5],
-                                 std=[0.5,0.5,0.5])])
- 
+            transforms.Normalize(mean=[0.5,0.5,0.5],
+                std=[0.5,0.5,0.5])])
+
+       
         if self.net_type=="resnet18":
             self.net=models.resnet18(pretrained=False,num_classes=self.num_classes)
         elif self.net_type=="resnet34":

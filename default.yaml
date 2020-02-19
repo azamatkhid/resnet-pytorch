@@ -4,8 +4,8 @@ hydra:
 
 parameters:
   layers: [2,2,2,2]
-  epochs: 10
-  batch_size: 40
+  epochs: 200
+  batch_size: 128
   verbose_step: 100
   verbose: 1
   momentum: 0.9

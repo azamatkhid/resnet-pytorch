@@ -33,8 +33,9 @@ class Model:
         torch.manual_seed(0)
         
         self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
+            transforms.Pad(4),
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0),
+            transforms.RandomCrop((224,224))
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5,0.5,0.5],
                 std=[0.5,0.5,0.5])])
@@ -67,8 +68,8 @@ class Model:
 
         self.writer=SummaryWriter(log_dir=self.log_dir)
         self.criterion=criterion()
-        self.optimizer=optimizer(self.net.parameters(),lr=self.lr,momentum=self.momentum)
-        self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=1,gamma=0.1)
+        self.optimizer=optimizer(self.net.parameters(),lr=self.lr,momentum=self.momentum,weight_decay=0.0001)
+        self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=80,gamma=0.1)
 
         iteration=1
         for epch in range(self.epochs):
@@ -170,10 +171,4 @@ class Model:
             data=datasets.CIFAR10(root="./data",train=False,download=True,transform=self.train_transforms)
             self.test_data=torch.utils.data.DataLoader(data, batch_size=self.batch_size,shuffle=False,num_workers=1)
 
-
-
-if __name__=="__main__":
-    model=Model(**default)
-    summary(model.net,(3,224,224))
-    
 
