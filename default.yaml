@@ -9,7 +9,7 @@ parameters:
   verbose_step: 100
   verbose: 1
   momentum: 0.9
-  lr: 0.001
+  lr: 0.1
   mode: "train"
   log_dir: "./tboard"
   ckpts_dir: "./ckpts"

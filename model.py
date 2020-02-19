@@ -38,6 +38,8 @@ class Model:
         print(f"Device: {self.device}")
 
         self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0),
             transforms.ToTensor(),
             transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
         
@@ -69,6 +71,7 @@ class Model:
         iteration=1
         for epch in range(self.epochs):
             self.scheduler.step()
+            print(f"{self.scheduler.get_lr()}")
             running_loss=0.0
             epch_loss=0.0
             for idx, batch in enumerate(self.train_data,start=0):
@@ -90,8 +93,6 @@ class Model:
                     print(f"{epch} train_loss: {running_loss/self.verbose_step}, val_loss: {valid_loss}, val_acc: {valid_acc}, lr: {self.scheduler.get_lr()}")
                     running_loss=0.0
                     iteration+=1
-
-            self.scheduler.step() # learning rate decay
             
             print(f"[{epch}] loss: {epch_loss}")
 
