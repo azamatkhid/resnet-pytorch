@@ -27,25 +27,27 @@ class Model:
         self.verbose_step=configs["verbose_step"]
         self.verbose=configs["verbose"]
         self.num_classes=configs["num_classes"]
+        self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print(f"Device: {self.device}")
+
+        torch.manual_seed(0)
         
+        self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5,0.5,0.5],
+                std=[0.5,0.5,0.5])])
+        
+        self.test_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5,0.5,0.5],
+                std=[0.5,0.5,0.5])])
 
         if configs["block"].lower()=="basic":
             self.block=BasicBlock
         elif configs["block"].lower()=="bottleneck":
             self.block=Bottleneck
-
-        self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        print(f"Device: {self.device}")
-
-        self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
-        
-        self.test_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
 
         self.net=ResNet(self.layers,res_block=self.block, num_classes=self.num_classes)
         
@@ -70,7 +72,6 @@ class Model:
 
         iteration=1
         for epch in range(self.epochs):
-            self.scheduler.step()
             running_loss=0.0
             epch_loss=0.0
             for idx, batch in enumerate(self.train_data,start=0):
@@ -88,11 +89,12 @@ class Model:
                     self.writer.add_scalar("Loss/Train",running_loss/self.verbose_step,iteration)
                     self.writer.add_scalar("Loss/Validation",valid_loss,iteration)
                     self.writer.add_scalar("Acc/Validation",valid_acc,iteration)
-                    self.writer.add_scalar("LearningRate",self.scheduler.get_lr(),iteration)
-                    print(f"{epch} train_loss: {running_loss/self.verbose_step}, val_loss: {valid_loss}, val_acc: {valid_acc}, lr: {self.scheduler.get_lr()}")
+                    self.writer.add_scalar("LearningRate",self.scheduler.get_lr()[0],iteration)
+                    print(f"{epch} train_loss: {running_loss/self.verbose_step}, val_loss: {valid_loss}, val_acc: {valid_acc}, lr: {self.scheduler.get_lr()[0]}")
                     running_loss=0.0
                     iteration+=1
             
+            self.scheduler.step()
             print(f"[{epch}] loss: {epch_loss}")
 
         torch.save(self.net.state_dict(),os.path.join(self.ckpts_dir,"model.pth"))

@@ -30,16 +30,20 @@ class ResNet_official(Model):
         self.net_type=configs["model"]
         self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(f"{self.device}")
+        
+        torch.manual_seed(0)
 
-        self.train_transforms=transforms.Compose([transforms.Resize((224,224), interpolation=2),
+        self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ColorJitter(brightness=0, contrast=0, saturation=0, hue=0),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])])
+            transforms.Normalize(mean=[0.5,0.5,0.5],
+                std=[0.5,0.5,0.5])])
         
         self.test_transforms=transforms.Compose([transforms.Resize((224,224), interpolation=2),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])])
+            transforms.Normalize(mean=[0.5,0,5,0,5],
+                                 std=[0.5,0.5,0.5])])
  
         if self.net_type=="resnet18":
             self.net=models.resnet18(pretrained=False,num_classes=self.num_classes)
@@ -58,7 +62,7 @@ class ResNet_official(Model):
             print(f"Number of GPUs {torch.cuda.device_count()}")
         self.net.to(self.device)
         
-        if torch.cuda.device_count()>=0 and self.verbose==1:
+        if torch.cuda.device_count()<=1 and self.verbose==1:
             summary(self.net,(3,224,224))
 
 @hydra.main("./default.yaml")
