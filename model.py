@@ -35,7 +35,7 @@ class Model:
         self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
             transforms.Pad(4),
             transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomCrop((224,224))
+            transforms.RandomCrop((224,224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5,0.5,0.5],
                 std=[0.5,0.5,0.5])])
