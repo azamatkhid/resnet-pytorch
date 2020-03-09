@@ -16,3 +16,4 @@ parameters:
   block: "basic"
   num_classes: 10
   model: "resnet18"
+  dataset: "cifar10
