@@ -1,175 +1,105 @@
-import os
 import torch
-import numpy as np
-
 import torch.nn as nn
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
-
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data.sampler import SubsetRandomSampler
+import torch.nn.functional as F
+import torchvision.models as models
 from torchsummary import summary
 
-from network import ResNet,BasicBlock,Bottleneck
-from tqdm import tqdm
-from hydra import utils
-
-
-class Model:
-    def __init__(self,**configs):
-        self.layers=configs["layers"]
-        self.epochs=configs["epochs"]
-        self.batch_size=configs["batch_size"]
-        self.log_dir=configs["log_dir"]
-        self.ckpts_dir=configs["ckpts_dir"]
-        self.lr=configs["lr"]
-        self.momentum=configs["momentum"]
-        self.verbose_step=configs["verbose_step"]
-        self.verbose=configs["verbose"]
-        self.num_classes=configs["num_classes"]
-        self.dataset=getattr(datasets,configs["dataset"].upper())
-        self.data_dir=os.path.join(utils.get_original_cwd(),"./data")
-        self.device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        print(f"Device: {self.device}")
-
-        torch.manual_seed(0)
-        
-        self.train_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
-            transforms.Pad(4),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomCrop((224,224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5,0.5,0.5],
-                std=[0.5,0.5,0.5])])
-        
-        self.test_transforms=transforms.Compose([transforms.Resize((224,224),interpolation=2),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5,0.5,0.5],
-                std=[0.5,0.5,0.5])])
-
-        if configs["block"].lower()=="basic":
-            self.block=BasicBlock
-        elif configs["block"].lower()=="bottleneck":
-            self.block=Bottleneck
-
-        self.net=ResNet(self.layers,res_block=self.block, num_classes=self.num_classes)
-        
-        if torch.cuda.device_count()>0:
-            self.net=nn.DataParallel(self.net)
-            print(f"Number of GPUs {torch.cuda.device_count()}")
-        self.net.to(self.device)
-
-        if self.verbose==1 and torch.cuda.device_count()<=1:
-            summary(self.net,(3,224,224))
-
-
-    def train(self, criterion=nn.CrossEntropyLoss,optimizer=torch.optim.SGD):
-        self.net.train() # required due to BN layer
-        self._check_dirs()
-        self._load_data("train")
-
-        self.writer=SummaryWriter(log_dir=self.log_dir)
-        self.criterion=criterion()
-        self.optimizer=optimizer(self.net.parameters(),lr=self.lr,momentum=self.momentum,weight_decay=0.0001)
-        self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=80,gamma=0.1)
-
-        iteration=1
-        for epch in range(self.epochs):
-            running_loss=0.0
-            epch_loss=0.0
-            for idx, batch in enumerate(self.train_data,start=0):
-                inputs,labels=batch[0].to(self.device),batch[1].to(self.device)
-                self.optimizer.zero_grad()
-                outputs=self.net(inputs)
-                loss=self.criterion(outputs,labels)
-                loss.backward()
-                self.optimizer.step()
-                running_loss+=loss.item()
-                epch_loss+=loss.item()
-
-                if idx%self.verbose_step==self.verbose_step-1:
-                    valid_acc, valid_loss=self._validation()
-                    self.writer.add_scalar("Loss/Train",running_loss/self.verbose_step,iteration)
-                    self.writer.add_scalar("Loss/Validation",valid_loss,iteration)
-                    self.writer.add_scalar("Acc/Validation",valid_acc,iteration)
-                    self.writer.add_scalar("LearningRate",self.scheduler.get_lr()[0],iteration)
-                    print(f"{epch} train_loss: {running_loss/self.verbose_step}, val_loss: {valid_loss}, val_acc: {valid_acc}, lr: {self.scheduler.get_lr()[0]}")
-                    running_loss=0.0
-                    iteration+=1
-            
-            self.scheduler.step()
-            print(f"[{epch}] loss: {epch_loss}")
-
-        torch.save(self.net.state_dict(),os.path.join(self.ckpts_dir,"model.pth"))
-
-    def _validation(self):
-        self.net.eval() # required due to BN layer
-        correct=0
-        total=0
-        total_loss=0
-        with torch.no_grad():
-            for data in self.valid_data:
-                inputs,labels=data[0].to(self.device),data[1].to(self.device)
-                outputs=self.net(inputs)
-                loss=self.criterion(outputs,labels)
-                total_loss+=loss.item()
-                _,predicted=torch.max(outputs,1)
-                total+=labels.size(0)
-                correct+=(predicted==labels).sum().item()
-        self.net.train() # required due BN layer
-        acc=correct/total
-        batch_loss=total_loss/len(self.valid_data)
-        return acc, batch_loss 
+class BasicBlock(nn.Module):
+    expansion=1
+    def __init__(self,inchannel,outchannel,stride=1,act=nn.ReLU):
+        super(BasicBlock, self).__init__()
+        self.conv1=nn.Conv2d(inchannel,outchannel,kernel_size=3,stride=stride,padding=1,bias=False)
+        self.bn1=nn.BatchNorm2d(outchannel)
+        self.act1=act(inplace=True)
+        self.conv2=nn.Conv2d(outchannel,outchannel,kernel_size=3,stride=1,padding=1,bias=False)
+        self.bn2=nn.BatchNorm2d(outchannel)
+        self.act2=act(inplace=True)
+        self.skip=nn.Sequential()
+        if stride>1 or inchannel!=outchannel:
+            self.skip=nn.Sequential(nn.Conv2d(inchannel,outchannel,kernel_size=1,stride=stride,padding=0,bias=False),
+                    nn.BatchNorm2d(outchannel))
     
-    def test(self):
-        self.net.eval() # required due to BN layer
-        self._load_data("test")
-        correct=0
-        total=0
+    def forward(self,x):
+        out=self.act1(self.bn1(self.conv1(x)))
+        out=self.act2(self.bn2(self.conv2(out))+self.skip(x))
+        return out
 
-        with torch.no_grad():
-            for data in tqdm(self.test_data):
-                inputs,labels=data[0].to(self.device),data[1].to(self.device)
-                outputs=self.net(inputs)
-                _,predicted=torch.max(outputs,1)
-                total+=labels.size(0)
-                correct+=(predicted==labels).sum().item()
-        print(f"Test accuracy: {100*correct/total}%")
-        self.net.train()
+class Bottleneck(nn.Module):
+    expansion=4
+    def __init__(self,inchannel,outchannel,stride=1,act=nn.ReLU):
+        super(Bottleneck,self).__init__()
+        self.conv1=nn.Conv2d(inchannel,outchannel,stride=1,kernel_size=1,bias=False)
+        self.bn1=nn.BatchNorm2d(outchannel)
+        self.act1=act(inplace=True)
+        self.conv2=nn.Conv2d(outchannel,outchannel,stride=stride,kernel_size=3,padding=1,bias=False)
+        self.bn2=nn.BatchNorm2d(outchannel)
+        self.act2=act(inplace=True)
+        self.conv3=nn.Conv2d(outchannel,outchannel*self.expansion,stride=1,kernel_size=1,bias=False)
+        self.bn3=nn.BatchNorm2d(outchannel*self.expansion)
+        self.act3=act(inplace=True)
+        self.skip=nn.Sequential()
+        if stride>1 or inchannel!=outchannel*self.expansion:
+            self.skip=nn.Sequential(nn.Conv2d(inchannel,outchannel*self.expansion,stride=stride,kernel_size=1,bias=False),
+                    nn.BatchNorm2d(outchannel*self.expansion))
 
-
-    def _check_dirs(self):
-        if not os.path.exists(self.log_dir):
-            os.mkdir(self.log_dir)
-        if not os.path.exists(self.ckpts_dir):
-            os.mkdir(self.ckpts_dir)
-
-    def _load_data(self,*args):
-        if args[0]=="train":
-            data=self.dataset(root=self.data_dir,
-                    train=True,download=True,transform=self.train_transforms)
-
-            data_size=len(data)
-            indices=list(range(data_size))
-            valid_ratio=0.1
-            split=int(np.floor(valid_ratio*data_size))
-            train_idx,valid_idx=indices[split:],indices[:split]
-            train_sampler=SubsetRandomSampler(train_idx)
-            valid_sampler=SubsetRandomSampler(valid_idx)
-
-            self.train_data=torch.utils.data.DataLoader(data,
-                    batch_size=self.batch_size,
-                    sampler=train_sampler,
-                    num_workers=1)
-
-            self.valid_data=torch.utils.data.DataLoader(data,
-                    batch_size=self.batch_size,
-                    sampler=valid_sampler,
-                    num_workers=1)
-
-        elif args[0]=="test":
-            data=self.dataset(root=self.data_dir,
-                    train=False,download=True,transform=self.test_transforms)
-            self.test_data=torch.utils.data.DataLoader(data, batch_size=self.batch_size,shuffle=False,num_workers=1)
+    def forward(self,x):
+        out=self.act1(self.bn1(self.conv1(x)))
+        out=self.act2(self.bn2(self.conv2(out)))
+        out=self.act3(self.bn3(self.conv3(out))+self.skip(x))
+        return out
 
 
+class ResNet(nn.Module):
+    base_channel=64
+    def __init__(self,layers=[2,2,2,2],act=nn.ReLU,num_classes=1000,res_block=BasicBlock):
+        super(ResNet,self).__init__()
+        inchannel,outchannel=3,64
+        self._layers=[]
+
+        self.conv0=nn.Conv2d(inchannel,outchannel,kernel_size=7,stride=2,padding=3,bias=False)
+        self.b0=nn.BatchNorm2d(outchannel)
+        self.act0=act(inplace=True)
+        self.maxpool=nn.MaxPool2d(kernel_size=3,stride=2,padding=1)
+        self.layer1=self._make_res_layer(res_block,64,layers[0],stride=1,act=act)
+        self.layer2=self._make_res_layer(res_block,128,layers[1],stride=2,act=act)
+        self.layer3=self._make_res_layer(res_block,256,layers[2],stride=2,act=act)
+        self.layer4=self._make_res_layer(res_block,512,layers[3],stride=2,act=act)
+        self.pooling=nn.AdaptiveAvgPool2d((1,1))
+        self.layer5=nn.Linear(512*res_block.expansion,num_classes)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self,x):
+        out=self.maxpool(self.act0(self.b0(self.conv0(x))))
+        out=self.layer1(out)
+        out=self.layer2(out)
+        out=self.layer3(out)
+        out=self.layer4(out)
+        out=self.pooling(out)
+        out=torch.flatten(out,1)
+        out=self.layer5(out)
+        return out
+
+    def _make_res_layer(self,res_block,channel,num_blocks,stride=1,act=nn.ReLU):
+        blocks=[]
+        inchannel,outchannel=channel,channel
+        if stride!=1:
+            inchannel=channel//stride*res_block.expansion
+
+        blocks.append(res_block(inchannel,outchannel,stride=stride,act=act)) 
+        inchannel=channel*res_block.expansion
+        for bl in range(1,num_blocks):
+            blocks.append(res_block(inchannel,outchannel,stride=1,act=act))
+        return nn.Sequential(*blocks)
+
+
+if __name__=="__main__":
+    resnet18=ResNet(layers=[2,2,2,2],res_block=BasicBlock)
+    summary(resnet18,(3,224,224))
+    resnet50=ResNet(layers=[3,4,6,3],res_block=Bottleneck)
+    summary(resnet50,(3,224,224))
