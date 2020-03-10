@@ -39,6 +39,8 @@ class Application:
             transforms.Normalize(mean=[0.5,0.5,0.5],
                 std=[0.5,0.5,0.5])])
 
+        self.net=None
+
     def build(self):
         block=getattr(model,self.cfg.block)
         self.net=ResNet(layers=self.cfg.layers,res_block=block,num_classes=self.cfg.num_classes)
