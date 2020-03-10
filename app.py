@@ -60,7 +60,7 @@ class Application:
         self.writer=SummaryWriter(log_dir=self.cfg.log_dir)
         self.criterion=criterion()
         self.optimizer=optimizer(self.net.parameters(),lr=self.cfg.lr,momentum=self.cfg.momentum,weight_decay=self.cfg.weight_decay)
-        self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=self.cfg.lr_step,gamma=self.cfg.gamma)
+        self.scheduler=torch.optim.lr_scheduler.StepLR(self.optimizer,step_size=self.cfg.lr_step,gamma=self.cfg.lr_gamma)
 
         iteration=1
         for epch in range(self.cfg.epochs):
