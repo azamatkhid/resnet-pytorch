@@ -89,7 +89,6 @@ class Application:
                     iteration+=1
             
             self.scheduler.step()
-            print(f"[{epch}] loss: {epch_loss}")
 
         torch.save(self.net.state_dict(),os.path.join(self.cfg.ckpts_dir,"model.pth"))
 
